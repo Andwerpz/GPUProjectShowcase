@@ -16,7 +16,7 @@ import util.Vector3D;
 
 public class NBody extends State {
 
-	static final double g = 0.0001;
+	static final double g = 0.000001;
 
 	static ArrayList<Ball> balls = new ArrayList<Ball>();
 
@@ -39,7 +39,7 @@ public class NBody extends State {
 	public NBody(StateManager gsm) {
 		super(gsm);
 
-		for (int i = 0; i < 10000; i++) {
+		for (int i = 0; i < 1000; i++) {
 			balls.add(new Ball(Math.random() * 20, Math.random() * 20, Math.random() * 20 + 100));
 		}
 	}
@@ -113,32 +113,26 @@ public class NBody extends State {
 		Kernel kernel = new Kernel() {
 			@Override
 			public void run() {
+				double dx,dy,dz,dist,force;
 				int i = getGlobalId();
 				for(int j = 0; j < x.length; j++) {
 					if(j != i) {
-						double dx = x[j] - x[i];
-						double dy = y[j] - y[i];
-						double dz = z[j] - z[i];
+						dx = x[j] - x[i];
+						dy = y[j] - y[i];
+						dz = z[j] - z[i];
 		
 						// calculate magnitude of acceleration
-						double dist = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2) + Math.pow(dz, 2));
-						double force = gravConst * mass[i] * mass[j] / (dist * dist);
-						double accel = force / mass[i];
-		
-						// return answer
-						// normalize diff vector
-						dx /= dist;
-						dy /= dist;
-						dz /= dist;
+						dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+						force = gravConst * mass[j] / (dist * dist * dist);
+						
 						// add accel to total
-						ax[i] += dx * accel;
-						ay[i] += dy * accel;
-						az[i] += dz * accel;
+						ax[i] += dx * force;
+						ay[i] += dy * force;
+						az[i] += dz * force;
 					}
 				}
 			}
 		};
-		
 		long time = System.currentTimeMillis();
 		kernel.execute(x.length);
 		System.out.println("Time Taken: " + (System.currentTimeMillis() - time));
@@ -176,30 +170,24 @@ public class NBody extends State {
 			a[0] = 0;
 			a[1] = 0;
 			a[2] = 0;
-			
+			double dx,dy,dz,dist,force;
 			for(int j = 0; j < balls.size(); j++) {
 				if(i == j) {
 					continue;
 				}
 				
-				double dx = x[j] - x[i];
-				double dy = y[j] - y[i];
-				double dz = z[j] - z[i];
-
+				dx = x[j] - x[i];
+				dy = y[j] - y[i];
+				dz = z[j] - z[i];
+				
 				// calculate magnitude of acceleration
-				double dist = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2) + Math.pow(dz, 2));
-				double force = gravConst * mass[i] * mass[j] / (dist * dist);
-				double accel = force / mass[i];
-
-				// return answer
-				// normalize diff vector
-				dx /= dist;
-				dy /= dist;
-				dz /= dist;
+				dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+				force = gravConst * mass[j] / (dist * dist * dist);
+				
 				// add accel to total
-				a[0] += dx * accel;
-				a[1] += dy * accel;
-				a[2] += dz * accel;
+				a[0] += dx * force;
+				a[1] += dy * force;
+				a[2] += dz * force;
 			}
 			
 			balls.get(i).vel.addVector(new Vector3D(a[0], a[1], a[2]));
