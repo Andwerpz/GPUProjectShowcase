@@ -39,7 +39,7 @@ public class NBody extends State {
 	public NBody(StateManager gsm) {
 		super(gsm);
 
-		for (int i = 0; i < 1000; i++) {
+		for (int i = 0; i < 10000; i++) {
 			balls.add(new Ball(Math.random() * 20, Math.random() * 20, Math.random() * 20 + 100));
 		}
 	}
@@ -83,7 +83,7 @@ public class NBody extends State {
 		prevMouse.x = mouse.x;
 		prevMouse.y = mouse.y;
 		
-		doGravityCPU();
+		doGravity();
 		for (Ball b : balls) {
 			b.tick();
 		}
