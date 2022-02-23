@@ -8,6 +8,10 @@ import java.awt.event.MouseWheelEvent;
 import java.util.ArrayList;
 
 import com.aparapi.Kernel;
+import com.aparapi.Range;
+import com.aparapi.device.Device;
+import com.aparapi.internal.kernel.KernelManager;
+import com.aparapi.internal.kernel.KernelPreferences;
 
 import main.MainPanel;
 import util.MathTools;
@@ -30,16 +34,16 @@ public class NBody extends State {
 	boolean right = false;
 	boolean up = false;
 	boolean down = false;
-	
-	double moveSpeed = 0.1;
-	
+
+	double moveSpeed = 1;
+
 	java.awt.Point prevMouse = new java.awt.Point(0, 0);
 	boolean mousePressed = false;
-	
+
 	public NBody(StateManager gsm) {
 		super(gsm);
 
-		for (int i = 0; i < 10000; i++) {
+		for (int i = 0; i < 256; i++) {
 			balls.add(new Ball(Math.random() * 20, Math.random() * 20, Math.random() * 20 + 100));
 		}
 	}
@@ -53,37 +57,41 @@ public class NBody extends State {
 	@Override
 	public void tick(Point mouse) {
 		
-		if(forward) {
-			camera.z += moveSpeed;
+		Vector3D forwardVec = new Vector3D(0, 0, 1);
+		forwardVec.rotateY(yRot);
+
+		if (forward) {
+			camera.addVector(forwardVec);
 		}
-		if(backward) {
-			camera.z -= moveSpeed;
+		if (backward) {
+			camera.subtractVector(forwardVec);
 		}
-		if(left) {
-			camera.x -= moveSpeed;
+		forwardVec.rotateY(Math.toRadians(90));
+		if (left) {
+			camera.subtractVector(forwardVec);
 		}
-		if(right) {
-			camera.x += moveSpeed;
+		if (right) {
+			camera.addVector(forwardVec);
 		}
-		if(up) {
+		if (up) {
 			camera.y += moveSpeed;
 		}
-		if(down) {
+		if (down) {
 			camera.y -= moveSpeed;
 		}
-		
+
 		double xDiff = mouse.x - prevMouse.x;
 		double yDiff = mouse.y - prevMouse.y;
-		
-		if(mousePressed) {
+
+		if (mousePressed) {
 			xRot += Math.toRadians(yDiff) / 10;
 			yRot += Math.toRadians(xDiff) / 10;
 		}
-		
+
 		prevMouse.x = mouse.x;
 		prevMouse.y = mouse.y;
-		
-		doGravity();
+
+		doGravityCPU();
 		for (Ball b : balls) {
 			b.tick();
 		}
@@ -97,7 +105,7 @@ public class NBody extends State {
 		final double[] mass = new double[balls.size()];
 
 		final double gravConst = g;
-		
+
 		final double[] ax = new double[balls.size()];
 		final double[] ay = new double[balls.size()];
 		final double[] az = new double[balls.size()];
@@ -109,22 +117,23 @@ public class NBody extends State {
 
 			mass[i] = balls.get(i).mass;
 		}
-		
+
 		Kernel kernel = new Kernel() {
 			@Override
 			public void run() {
-				double dx,dy,dz,dist,force;
+				double dx, dy, dz, dist, force;
 				int i = getGlobalId();
-				for(int j = 0; j < x.length; j++) {
-					if(j != i) {
+				for (int j = 0; j < x.length; j++) {
+					if (j != i) {
 						dx = x[j] - x[i];
 						dy = y[j] - y[i];
 						dz = z[j] - z[i];
-		
+
 						// calculate magnitude of acceleration
 						dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+						// dist = dx * dx + dy * dy + dz * dz;
 						force = gravConst * mass[j] / (dist * dist * dist);
-						
+
 						// add accel to total
 						ax[i] += dx * force;
 						ay[i] += dy * force;
@@ -133,17 +142,22 @@ public class NBody extends State {
 				}
 			}
 		};
+
+		//KernelPreferences preferences = KernelManager.instance().getDefaultPreferences();
+		//Device device = preferences.getPreferredDevices(null).get(1);
+		//Range range = device.createRange(x.length);
+
 		long time = System.currentTimeMillis();
 		kernel.execute(x.length);
 		System.out.println("Time Taken: " + (System.currentTimeMillis() - time));
-		
+
 		for (int i = 0; i < balls.size(); i++) {
 			balls.get(i).vel.addVector(new Vector3D(ax[i], ay[i], az[i]));
 		}
-		
+
 		kernel.dispose();
 	}
-	
+
 	public static void doGravityCPU() {
 		final double[] x = new double[balls.size()];
 		final double[] y = new double[balls.size()];
@@ -152,7 +166,7 @@ public class NBody extends State {
 		final double[] mass = new double[balls.size()];
 
 		final double gravConst = g;
-		
+
 		final int[] curI = new int[1];
 		final double[] a = new double[3];
 
@@ -163,33 +177,33 @@ public class NBody extends State {
 
 			mass[i] = balls.get(i).mass;
 		}
-		
+
 		long time = System.currentTimeMillis();
 		for (int i = 0; i < balls.size(); i++) {
 			curI[0] = i;
 			a[0] = 0;
 			a[1] = 0;
 			a[2] = 0;
-			double dx,dy,dz,dist,force;
-			for(int j = 0; j < balls.size(); j++) {
-				if(i == j) {
+			double dx, dy, dz, dist, force;
+			for (int j = 0; j < balls.size(); j++) {
+				if (i == j) {
 					continue;
 				}
-				
+
 				dx = x[j] - x[i];
 				dy = y[j] - y[i];
 				dz = z[j] - z[i];
-				
+
 				// calculate magnitude of acceleration
 				dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 				force = gravConst * mass[j] / (dist * dist * dist);
-				
+
 				// add accel to total
 				a[0] += dx * force;
 				a[1] += dy * force;
 				a[2] += dz * force;
 			}
-			
+
 			balls.get(i).vel.addVector(new Vector3D(a[0], a[1], a[2]));
 		}
 		System.out.println("Time Taken: " + (System.currentTimeMillis() - time));
@@ -222,22 +236,17 @@ public class NBody extends State {
 	@Override
 	public void keyPressed(KeyEvent arg0) {
 		int k = arg0.getKeyCode();
-		if(k == KeyEvent.VK_W) {
+		if (k == KeyEvent.VK_W) {
 			this.forward = true;
-		}
-		else if(k == KeyEvent.VK_S) {
+		} else if (k == KeyEvent.VK_S) {
 			this.backward = true;
-		}
-		else if(k == KeyEvent.VK_A) {
+		} else if (k == KeyEvent.VK_A) {
 			this.left = true;
-		}
-		else if(k == KeyEvent.VK_D) {
+		} else if (k == KeyEvent.VK_D) {
 			this.right = true;
-		}
-		else if(k == KeyEvent.VK_SHIFT) {
+		} else if (k == KeyEvent.VK_SHIFT) {
 			this.down = true;
-		}
-		else if(k == KeyEvent.VK_SPACE) {
+		} else if (k == KeyEvent.VK_SPACE) {
 			this.up = true;
 		}
 	}
@@ -245,22 +254,17 @@ public class NBody extends State {
 	@Override
 	public void keyReleased(KeyEvent arg0) {
 		int k = arg0.getKeyCode();
-		if(k == KeyEvent.VK_W) {
+		if (k == KeyEvent.VK_W) {
 			this.forward = false;
-		}
-		else if(k == KeyEvent.VK_S) {
+		} else if (k == KeyEvent.VK_S) {
 			this.backward = false;
-		}
-		else if(k == KeyEvent.VK_A) {
+		} else if (k == KeyEvent.VK_A) {
 			this.left = false;
-		}
-		else if(k == KeyEvent.VK_D) {
+		} else if (k == KeyEvent.VK_D) {
 			this.right = false;
-		}
-		else if(k == KeyEvent.VK_SHIFT) {
+		} else if (k == KeyEvent.VK_SHIFT) {
 			this.down = false;
-		}
-		else if(k == KeyEvent.VK_SPACE) {
+		} else if (k == KeyEvent.VK_SPACE) {
 			this.up = false;
 		}
 	}
