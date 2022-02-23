@@ -43,7 +43,7 @@ public class NBody extends State {
 	public NBody(StateManager gsm) {
 		super(gsm);
 
-		for (int i = 0; i < 256; i++) {
+		for (int i = 0; i < 1000; i++) {
 			balls.add(new Ball(Math.random() * 20, Math.random() * 20, Math.random() * 20 + 100));
 		}
 	}
@@ -91,7 +91,7 @@ public class NBody extends State {
 		prevMouse.x = mouse.x;
 		prevMouse.y = mouse.y;
 
-		doGravityCPU();
+		doGravity();
 		for (Ball b : balls) {
 			b.tick();
 		}
@@ -142,6 +142,12 @@ public class NBody extends State {
 				}
 			}
 		};
+		
+//		kernel.put(x);
+//		kernel.put(y);
+//		kernel.put(z);
+//		
+//		kernel.put(mass);
 
 		//KernelPreferences preferences = KernelManager.instance().getDefaultPreferences();
 		//Device device = preferences.getPreferredDevices(null).get(1);
