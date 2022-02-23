@@ -43,7 +43,7 @@ public class NBody extends State {
 	public NBody(StateManager gsm) {
 		super(gsm);
 
-		for (int i = 0; i < 1000; i++) {
+		for (int i = 0; i < 10000; i++) {
 			balls.add(new Ball(Math.random() * 20, Math.random() * 20, Math.random() * 20 + 100));
 		}
 	}
@@ -130,8 +130,8 @@ public class NBody extends State {
 						dz = z[j] - z[i];
 
 						// calculate magnitude of acceleration
-						dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-						// dist = dx * dx + dy * dy + dz * dz;
+						//dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+						dist = dx * dx + dy * dy + dz * dz;
 						force = gravConst * mass[j] / (dist * dist * dist);
 
 						// add accel to total
