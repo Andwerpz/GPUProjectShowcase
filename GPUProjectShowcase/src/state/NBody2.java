@@ -33,7 +33,7 @@ public class NBody2 extends State{
 	java.awt.Point prevMouse = new java.awt.Point(0, 0);
 	boolean mousePressed = false;
 
-	final NBodyKernel kernel = new NBodyKernel(Range.create(Integer.getInteger("bodies", 25600), 256));
+	final NBodyKernel kernel = new NBodyKernel(Range.create(Integer.getInteger("bodies", 51200), 256));
 	
 	public NBody2(StateManager gsm) {
 		super(gsm);
@@ -139,7 +139,7 @@ public class NBody2 extends State{
 //			for(float i : localStuff) {
 //				System.out.println(i);
 //			}
-			System.out.println(localStuff.length / 3);
+			//System.out.println(localStuff.length / 3);
 			
 			for (int i = 0; i < (range.getGlobalSize(0) * 3); i += 3) {
 
@@ -204,11 +204,13 @@ public class NBody2 extends State{
 		prevMouse.x = mouse.x;
 		prevMouse.y = mouse.y;
 		
+		long time = System.currentTimeMillis();
+		
 		kernel.execute(kernel.range);
         if (kernel.isExplicit()) {
            kernel.get(kernel.xyz);
         }
-		
+        System.out.println("Time Taken: " + (System.currentTimeMillis() - time));
 	}
 
 	@Override
