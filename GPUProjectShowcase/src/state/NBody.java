@@ -43,7 +43,7 @@ public class NBody extends State {
 	public NBody(StateManager gsm) {
 		super(gsm);
 
-		for (int i = 0; i < 10000; i++) {
+		for (int i = 0; i < 2560; i++) {
 			balls.add(new Ball(Math.random() * 20, Math.random() * 20, Math.random() * 20 + 100));
 		}
 	}
@@ -122,7 +122,7 @@ public class NBody extends State {
 			@Override
 			public void run() {
 				double dx, dy, dz, dist, force;
-				int i = getGlobalId();
+				int i = getGlobalId(0);
 				for (int j = 0; j < x.length; j++) {
 					if (j != i) {
 						dx = x[j] - x[i];

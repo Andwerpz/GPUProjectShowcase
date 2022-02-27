@@ -99,7 +99,8 @@ public class MenuState extends State{
 class MainScrollWindow extends ScrollWindow{
 	
 	String[] projects = new String[] {
-			"NBody"
+			"NBody",
+			"NBody2"
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -128,6 +129,11 @@ class MainScrollWindow extends ScrollWindow{
 			switch(which) {
 			case "NBody" :
 				MainPanel.gsm.states.push(new NBody(MainPanel.gsm));
+				break;
+				
+			case "NBody2" :
+				MainPanel.gsm.states.push(new NBody2(MainPanel.gsm));
+				break;
 			}
 		}
 	}
