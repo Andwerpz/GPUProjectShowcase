@@ -32,14 +32,14 @@ public class NBody2 extends State{
 
 	java.awt.Point prevMouse = new java.awt.Point(0, 0);
 	boolean mousePressed = false;
-
-	final NBodyKernel kernel = new NBodyKernel(Range.create(Integer.getInteger("bodies", 51200), 256));
+	
+	final NBodyKernel kernel = new NBodyKernel(Range.create(Integer.getInteger("bodies", 25600), 256));
 	
 	public NBody2(StateManager gsm) {
 		super(gsm);
 		// TODO Auto-generated constructor stub
 		
-		
+		System.out.println(kernel.getTargetDevice());
 	}
 
 	public static class NBodyKernel extends Kernel {   
