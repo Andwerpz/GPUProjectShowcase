@@ -33,7 +33,7 @@ public class NBody2D extends State {
 	java.awt.Point prevMouse = new java.awt.Point(0, 0);
 	boolean mousePressed = false;
 
-	final NBodyKernel kernel = new NBodyKernel(Range.create(Integer.getInteger("bodies", 2560), 256));
+	final NBodyKernel kernel = new NBodyKernel(Range.create(Integer.getInteger("bodies", 5120), 256));
 
 	public NBody2D(StateManager gsm) {
 		super(gsm);
@@ -75,8 +75,8 @@ public class NBody2D extends State {
 			final float centerX = 0;
 			final float centerY = 0;
 
-			final float width = 8000;
-			final float height = 8000;
+			final float width = 2000;
+			final float height = 2000;
 			for (int body = 0; body < (range.getGlobalSize(0) * 2); body += 2) {
 
 				// get the 3D dimensional coordinates
@@ -92,6 +92,29 @@ public class NBody2D extends State {
 				//small initial velocity
 				vxy[body + 0] = (float) (Math.random() * 0.0001 * (Math.random() > 0.5? -1 : 1));
 				vxy[body + 1] = (float) (Math.random() * 0.0001 * (Math.random() > 0.5? -1 : 1));
+				
+				boolean collision = false;
+				while(true) {
+					for(int i = 0; i < body; i += 2) {
+						float dx = xy[i + 0] - xy[body + 0];
+						float dy = xy[i + 1] - xy[body + 1];
+						float dist = this.sqrt(dx * dx + dy * dy);
+						if(dist < radius[body / 2] + radius[i / 2]) {
+							collision = true;
+							System.out.println(i / 2);
+							break;
+						}
+					}
+					if(!collision) {
+						break;
+					}
+					xy[body + 0] = (float) (Math.random() * width - width / 2f + centerX);
+					xy[body + 1] = (float) (Math.random() * height - height / 2f + centerY);
+					System.out.println("Collision " + body);
+					collision = false;
+				}
+				
+				System.out.println(body / 2);
 			}
 			setExplicit(true);
 		}
