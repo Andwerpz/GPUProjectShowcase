@@ -43,7 +43,7 @@ public class NBody2D extends State {
 	}
 
 	public static class NBodyKernel extends Kernel {
-		protected final float delT = .05f;
+		protected final float delT = .0005f;
 
 		protected final float espSqr = 1.0f;
 
@@ -306,8 +306,10 @@ public class NBody2D extends State {
 		prevMouse.y = mouse.y;
 
 		long time = System.currentTimeMillis();
-
-		kernel.execute(kernel.range);
+		for(int i = 0; i < 10; i++) {
+			kernel.execute(kernel.range);
+		}
+		
 		if (kernel.isExplicit()) {
 			kernel.get(kernel.xy);
 			kernel.get(kernel.vxy);
