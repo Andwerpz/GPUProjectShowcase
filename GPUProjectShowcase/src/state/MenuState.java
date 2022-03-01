@@ -100,7 +100,8 @@ class MainScrollWindow extends ScrollWindow{
 	
 	String[] projects = new String[] {
 			"NBody",
-			"NBody2"
+			"NBody2",
+			"NBody2D"
 			};
 
 	public MainScrollWindow(int x, int y, int width, int height, int realHeight) {
@@ -133,6 +134,10 @@ class MainScrollWindow extends ScrollWindow{
 				
 			case "NBody2" :
 				MainPanel.gsm.states.push(new NBody2(MainPanel.gsm));
+				break;
+				
+			case "NBody2D" :
+				MainPanel.gsm.states.push(new NBody2D(MainPanel.gsm));
 				break;
 			}
 		}

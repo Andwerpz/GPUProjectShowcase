@@ -17,7 +17,7 @@ import util.Vector3D;
 
 public class NBody2 extends State{
 	
-	static Vector3D camera = new Vector3D(0, 0, -20);
+	static Vector3D camera = new Vector3D(0, 0, -200);
 	static double xRot = 0;
 	static double yRot = 0;
 
@@ -33,7 +33,7 @@ public class NBody2 extends State{
 	java.awt.Point prevMouse = new java.awt.Point(0, 0);
 	boolean mousePressed = false;
 	
-	final NBodyKernel kernel = new NBodyKernel(Range.create(Integer.getInteger("bodies", 25600), 256));
+	final NBodyKernel kernel = new NBodyKernel(Range.create(25600, 256));	//global size, local size
 	
 	public NBody2(StateManager gsm) {
 		super(gsm);
@@ -43,11 +43,13 @@ public class NBody2 extends State{
 	}
 
 	public static class NBodyKernel extends Kernel {   
+		
+		
 		protected final float delT = .005f;
 
 		protected final float espSqr = 1.0f;
 
-		protected final float mass = .1f;
+		protected final float mass = 500f;
 
 		private final Range range;
 
@@ -57,11 +59,15 @@ public class NBody2 extends State{
 
 		@Local
 		private final float[] localStuff; // local memory
-
+		
+		
+		
 		public NBodyKernel(Range _range) {
+			
 			range = _range;
+			
 			localStuff = new float[range.getLocalSize(0) * 3];
-
+			
 			xyz = new float[range.getGlobalSize(0) * 3];
 			vxyz = new float[range.getGlobalSize(0) * 3];
 			final float maxDist = 20f;
@@ -98,14 +104,18 @@ public class NBody2 extends State{
 			final float myPosx = xyz[globalId + 0];
 			final float myPosy = xyz[globalId + 1];
 			final float myPosz = xyz[globalId + 2];
-
+			
 			for (int tile = 0; tile < (getGlobalSize(0) / getLocalSize(0)); tile++) {
 				// load one tile into local memory
+				//each kernel loads one of 256 bodies into memory
 				final int gidx = ((tile * getLocalSize(0)) + getLocalId()) * 3;
 				final int lidx = getLocalId(0) * 3;
 				localStuff[lidx + 0] = xyz[gidx + 0];
 				localStuff[lidx + 1] = xyz[gidx + 1];
 				localStuff[lidx + 2] = xyz[gidx + 2];
+				
+				//System.out.println(getLocalId(0));
+				
 				// Synchronize to make sure data is available for processing
 				localBarrier();
 
@@ -118,12 +128,15 @@ public class NBody2 extends State{
 					accx = accx + (s * dx);
 					accy = accy + (s * dy);
 					accz = accz + (s * dz);
+					
 				}
 				localBarrier();
 			}
+			
 			accx = accx * delT;
 			accy = accy * delT;
 			accz = accz * delT;
+			
 			xyz[globalId + 0] = myPosx + (vxyz[globalId + 0] * delT) + (accx * .5f * delT);
 			xyz[globalId + 1] = myPosy + (vxyz[globalId + 1] * delT) + (accy * .5f * delT);
 			xyz[globalId + 2] = myPosz + (vxyz[globalId + 2] * delT) + (accz * .5f * delT);
@@ -131,7 +144,7 @@ public class NBody2 extends State{
 			vxyz[globalId + 0] = vxyz[globalId + 0] + accx;
 			vxyz[globalId + 1] = vxyz[globalId + 1] + accy;
 			vxyz[globalId + 2] = vxyz[globalId + 2] + accz;
-
+			
 		}
 		
 		public void render(Graphics g) {
@@ -140,7 +153,11 @@ public class NBody2 extends State{
 //				System.out.println(i);
 //			}
 			//System.out.println(localStuff.length / 3);
-			
+//			for(float i : xyz) {
+//				System.out.print(i + " ");
+//			}
+//			System.out.println();
+			//System.out.println(System.getProperties());
 			for (int i = 0; i < (range.getGlobalSize(0) * 3); i += 3) {
 
 				Point3D transformed = new Point3D(xyz[i + 0], xyz[i + 1], xyz[i + 2]);
