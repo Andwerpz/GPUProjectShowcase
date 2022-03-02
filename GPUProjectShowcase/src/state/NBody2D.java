@@ -33,7 +33,7 @@ public class NBody2D extends State {
 	java.awt.Point prevMouse = new java.awt.Point(0, 0);
 	boolean mousePressed = false;
 
-	final NBodyKernel kernel = new NBodyKernel(Range.create(Integer.getInteger("bodies", 5120), 256));
+	final NBodyKernel kernel = new NBodyKernel(Range.create(Integer.getInteger("bodies", 256), 256));
 
 	public NBody2D(StateManager gsm) {
 		super(gsm);
@@ -43,9 +43,9 @@ public class NBody2D extends State {
 	}
 
 	public static class NBodyKernel extends Kernel {
-		protected final float delT = .0005f;
-
+		protected final float delT = .001f;
 		protected final float espSqr = 1.0f;
+		protected final float G = 1f;
 
 		private final Range range;
 
@@ -75,8 +75,8 @@ public class NBody2D extends State {
 			final float centerX = 0;
 			final float centerY = 0;
 
-			final float width = 2000;
-			final float height = 2000;
+			final float width = 1000;
+			final float height = 1000;
 			for (int body = 0; body < (range.getGlobalSize(0) * 2); body += 2) {
 
 				// get the 3D dimensional coordinates
@@ -88,24 +88,24 @@ public class NBody2D extends State {
 
 				// set radius
 				radius[body / 2] = (float) (Math.cbrt(mass[body / 2] / Math.PI));
-				
-				//small initial velocity
-				vxy[body + 0] = (float) (Math.random() * 0.0001 * (Math.random() > 0.5? -1 : 1));
-				vxy[body + 1] = (float) (Math.random() * 0.0001 * (Math.random() > 0.5? -1 : 1));
-				
+
+				// small initial velocity
+//				vxy[body + 0] = (float) (Math.random() * 0.0001 * (Math.random() > 0.5 ? -1 : 1));
+//				vxy[body + 1] = (float) (Math.random() * 0.0001 * (Math.random() > 0.5 ? -1 : 1));
+
 				boolean collision = false;
-				while(true) {
-					for(int i = 0; i < body; i += 2) {
+				while (true) {
+					for (int i = 0; i < body; i += 2) {
 						float dx = xy[i + 0] - xy[body + 0];
 						float dy = xy[i + 1] - xy[body + 1];
 						float dist = this.sqrt(dx * dx + dy * dy);
-						if(dist < radius[body / 2] + radius[i / 2]) {
+						if (dist < radius[body / 2] + radius[i / 2]) {
 							collision = true;
 							System.out.println(i / 2);
 							break;
 						}
 					}
-					if(!collision) {
+					if (!collision) {
 						break;
 					}
 					xy[body + 0] = (float) (Math.random() * width - width / 2f + centerX);
@@ -113,7 +113,7 @@ public class NBody2D extends State {
 					System.out.println("Collision " + body);
 					collision = false;
 				}
-				
+
 				System.out.println(body / 2);
 			}
 			setExplicit(true);
@@ -148,7 +148,7 @@ public class NBody2D extends State {
 					final float dx = localStuff[i + 0] - myPosx;
 					final float dy = localStuff[i + 1] - myPosy;
 					final float invDist = this.rsqrt((dx * dx) + (dy * dy) + espSqr);
-					final float s = localStuff[i + 4] * invDist * invDist * invDist;
+					final float s = G * localStuff[i + 4] * invDist * invDist * invDist;
 					accx = accx + (s * dx);
 					accy = accy + (s * dy);
 				}
@@ -182,6 +182,9 @@ public class NBody2D extends State {
 				localStuff[lidx + 3] = vxy[gidx + 1];
 				localStuff[lidx + 4] = mass[gidx / 2];
 				localStuff[lidx + 5] = radius[gidx / 2];
+
+				// System.out.println("Tile: " + tile + " " + globalId);
+
 				localBarrier();
 
 				for (int i = 0; i < (getLocalSize() * 6); i += 6) {
@@ -190,79 +193,44 @@ public class NBody2D extends State {
 					float dy = myPosy - localStuff[i + 1];
 					float dist = this.sqrt(dx * dx + dy * dy);
 					int gid = (tile * getLocalSize(0)) + (i / 6);
+
 					// check for collision, and make sure it's not self collision
 					if (myRadius + localStuff[i + 5] > dist && gid != globalId) {
 						// collision happened
-
-						//get normal component of both velocities
+						// get normal component of both velocities
 						float normalx = dx / dist; // normalized norm vector
 						float normaly = dy / dist;
-						
-						//get magnitude of velocity vectors projected along normal vector
+
+						// get magnitude of velocity vectors projected along normal vector
 						float aNormMag = normalx * myVelx + normaly * myVely;
 						float bNormMag = normalx * localStuff[i + 2] + normaly * localStuff[i + 3];
-						
-						//1D kinematic collision
-						float aNormFinal = (aNormMag * (myMass - localStuff[lidx + 4]) + 2 * localStuff[lidx + 4] * bNormMag) / (myMass + localStuff[lidx + 4]);
-						
-						//calculate acceleration from collision
+
+						// 1D kinematic collision
+						float aNormFinal = (aNormMag * (myMass - localStuff[i + 4]) + 2 * localStuff[i + 4] * bNormMag)
+								/ (myMass + localStuff[i + 4]);
+
+						// calculate acceleration from collision
 						float dvx = normalx * (aNormFinal - aNormMag);
 						float dvy = normaly * (aNormFinal - aNormMag);
 
 						accx = accx + dvx;
 						accy = accy + dvy;
-
-						//System.out.println("collison");
-						
-//						Vector normal = new Vector(this.pos.x - c.pos.x, this.pos.y - c.pos.y);
-//						normal.normalize();
-//						Vector tangent = new Vector(normal);
-//						tangent.rotateCounterClockwise(Math.toRadians(-90));
-//						
-//						System.out.println(normal.x + " " + normal.y);
-//						
-//						Vector aNormal = new Vector(normal);	//aNormal.setMagnitude(MathTools.dotProduct(this.vel, normal));
-//						Vector bNormal = new Vector(normal);	//bNormal.setMagnitude(MathTools.dotProduct(c.vel, normal));
-//						
-//						double aNormTemp = MathTools.dotProduct(this.vel, normal);
-//						double bNormTemp = MathTools.dotProduct(c.vel, normal);
-//						
-//						Vector aTangent = new Vector(tangent);	aTangent.setMagnitude(MathTools.dotProduct(this.vel, tangent));
-//						Vector bTangent = new Vector(tangent);	bTangent.setMagnitude(MathTools.dotProduct(c.vel, tangent));
-//						
-//						System.out.println(aNormal.getMagnitude() + " " + bNormal.getMagnitude());
-//						
-//						//modify normal component magnitudes based on masses of objects
-//						
-//						double aNormalFinal = (aNormTemp * (this.mass - c.mass) + 2 * c.mass * bNormTemp) / (this.mass + c.mass);
-//						double bNormalFinal = (bNormTemp * (c.mass - this.mass) + 2 * this.mass * aNormTemp) / (c.mass + this.mass);
-//						
-//						aNormal.setMagnitude(aNormalFinal);
-//						bNormal.setMagnitude(bNormalFinal);
-//						
-//						//add components back together
-//						Vector aFinal = new Vector(aTangent);	aFinal.addVector(aNormal);
-//						Vector bFinal = new Vector(bTangent);	bFinal.addVector(bNormal);
-//						
-//						this.vel = new Vector(aFinal);
-//						c.vel = new Vector(bFinal);
-
 					}
 				}
 				localBarrier();
 			}
-			
-			if(accx != Float.NaN) {
+
+			if (accx != Float.NaN) {
 				vxy[globalId * 2 + 0] = vxy[globalId * 2 + 0] + accx;
-				//System.out.println(accx);
+				// System.out.println(accx);
 			}
-			if(accy != Float.NaN) {
+			if (accy != Float.NaN) {
 				vxy[globalId * 2 + 1] = vxy[globalId * 2 + 1] + accy;
 			}
-			
+
 			// collision accel
-			//System.out.println(accx + " " + accy);
-			//System.out.println(vxy[globalId * 2 + 0] + " " + vxy[globalId * 2 + 1]);
+			// System.out.println(accx + " " + accy);
+			// System.out.println(vxy[globalId * 2 + 0] + " " + vxy[globalId * 2 + 1]);
 
 			// updating pos
 			xy[globalId * 2 + 0] = myPosx + (vxy[globalId * 2 + 0] * delT);
@@ -327,17 +295,76 @@ public class NBody2D extends State {
 
 		prevMouse.x = mouse.x;
 		prevMouse.y = mouse.y;
+		
+		//gathering data from prev frame
+		float prevEnergy = 0;
+		for (int i = 0; i < kernel.range.getGlobalSize(0); i++) {
+			float vx = kernel.vxy[i * 2 + 0];
+			float vy = kernel.vxy[i * 2 + 1];
+			float v = (float) Math.sqrt(vx * vx + vy * vy);
+			prevEnergy += 0.5f * kernel.mass[i] * v * v;
+			for (int j = i + 1; j < kernel.range.getGlobalSize(0); j++) {
+				float dx = kernel.xy[i * 2 + 0] - kernel.xy[j * 2 + 0];
+				float dy = kernel.xy[i * 2 + 1] - kernel.xy[j * 2 + 1];
+				float dist = (float) Math.sqrt(dx * dx + dy * dy);	//G == 1
+				prevEnergy -= kernel.mass[i] * kernel.mass[j] / dist;
+			}
+		}
 
 		long time = System.currentTimeMillis();
-		for(int i = 0; i < 10; i++) {
+		for (int i = 0; i < 10; i++) {
 			kernel.execute(kernel.range);
 		}
-		
+
 		if (kernel.isExplicit()) {
 			kernel.get(kernel.xy);
 			kernel.get(kernel.vxy);
+			kernel.get(kernel.mass);
 		}
-		//System.out.println("Time Taken: " + (System.currentTimeMillis() - time));
+		System.out.println("Time Taken: " + (System.currentTimeMillis() - time));
+
+		// calc current frame total energy
+		float px = 0;	//momentum vector
+		float py = 0;
+		float m = 0;	//mass sum
+		float totalEnergy = 0;
+		float kineticEnergy = 0;
+		for (int i = 0; i < kernel.range.getGlobalSize(0); i++) {
+			float vx = kernel.vxy[i * 2 + 0];
+			float vy = kernel.vxy[i * 2 + 1];
+			float v = (float) Math.sqrt(vx * vx + vy * vy);
+			kineticEnergy += 0.5f * kernel.mass[i] * v * v;
+			
+			m += kernel.mass[i];
+			px += kernel.mass[i] * vx;
+			py += kernel.mass[i] * vy;
+			
+			for (int j = i + 1; j < kernel.range.getGlobalSize(0); j++) {
+				float dx = kernel.xy[i * 2 + 0] - kernel.xy[j * 2 + 0];
+				float dy = kernel.xy[i * 2 + 1] - kernel.xy[j * 2 + 1];
+				float dist = (float) Math.sqrt(dx * dx + dy * dy);	//G == 1
+				totalEnergy -= kernel.mass[i] * kernel.mass[j] / dist;
+			}
+		}
+		totalEnergy += kineticEnergy;
+		float scale = (float) Math.sqrt((kineticEnergy + prevEnergy - totalEnergy) / kineticEnergy);
+		float pxScale = scale * px / m;
+		float pyScale = scale * py / m;
+		System.out.println(pxScale + " " + pyScale + " " + scale);
+		
+		for (int i = 0; i < kernel.range.getGlobalSize(0); i++) {
+			kernel.vxy[i * 2 + 0] *= scale;
+			kernel.vxy[i * 2 + 1] *= scale;
+			//System.out.println(kernel.vxy[i * 2 + 0] + " " + kernel.vxy[i * 2 + 1]);
+			
+			kernel.vxy[i * 2 + 0] -= pxScale;
+			kernel.vxy[i * 2 + 1] -= pyScale;
+		}
+		
+		
+		
+		kernel.put(kernel.vxy);
+		prevEnergy = totalEnergy;
 	}
 
 	@Override
